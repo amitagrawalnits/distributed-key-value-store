@@ -17,7 +17,6 @@ public class StoreController {
 
   private final StoreService storeService;
 
-  // --- NEW: Single PUT ---
   @PostMapping("/keys")
   public Mono<ResponseEntity<String>> put(@RequestBody Entry request) {
     return storeService.handleWrite(request.key(), request.value())
@@ -27,7 +26,6 @@ public class StoreController {
       });
   }
 
-  // --- NEW: Single GET ---
   @GetMapping("/keys/{key}")
   public Mono<ResponseEntity<GetResponse>> get(@PathVariable String key) {
     return storeService.handleRead(key)
@@ -38,9 +36,7 @@ public class StoreController {
   @DeleteMapping("/keys/{key}")
   public Mono<ResponseEntity<Void>> delete(@PathVariable String key) {
     return storeService.handleDelete(key)
-      .map(success -> success ?
-        ResponseEntity.noContent().build() :
-        ResponseEntity.status(503).build());
+      .map(success -> success ? ResponseEntity.noContent().build() : ResponseEntity.status(503).build());
   }
 
   @PostMapping("/batch")
