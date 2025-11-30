@@ -20,7 +20,7 @@ public class StoreController {
   // --- NEW: Single PUT ---
   @PostMapping("/keys")
   public Mono<ResponseEntity<String>> put(@RequestBody Entry request) {
-    return storeService.handleWrite(request.key(), request.key())
+    return storeService.handleWrite(request.key(), request.value())
       .map(success -> {
         if (success) return ResponseEntity.ok("Written Successfully");
         else return ResponseEntity.status(503).body("Quorum Failed");

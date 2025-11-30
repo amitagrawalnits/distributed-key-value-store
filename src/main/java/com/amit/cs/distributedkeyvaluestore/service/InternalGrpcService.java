@@ -5,10 +5,10 @@ import com.amit.cs.distributedkeyvaluestore.component.StorageEngine;
 import com.amit.store.grpc.*;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class InternalGrpcService extends StoreGrpcServiceGrpc.StoreGrpcServiceImplBase {
@@ -58,18 +58,13 @@ public class InternalGrpcService extends StoreGrpcServiceGrpc.StoreGrpcServiceIm
 
   @Override
   public void joinCluster(JoinRequest req, StreamObserver<JoinResponse> responseObserver) {
-    String id = req.getNodeIp() + ":" + req.getNodePort();
+    final var id = req.getNodeIp() + ":" + req.getNodePort();
     router.addNode(NodeInfo.newBuilder().setId(id).setIp(req.getNodeIp()).setPort(req.getNodePort()).build());
-
-    // Return full ring topology
-    // Note: getAllNodes is not thread-safe in simple Router code,
-    // but for this MVP we iterate the public 'getPreferenceList' or modify Router to expose values.
-    // Assuming we added a helper 'getAllNodes' to router as discussed before.
-    // For strict compilation, let's just return a placeholder or ensure Router has the method.
-    // Using a safe implementation below:
-    responseObserver.onNext(JoinResponse.newBuilder()
-      .addAllExistingNodes(new ArrayList<>()) // Requires router.getAllNodes()
-      .setSuccess(true).build());
+    responseObserver.onNext(
+      JoinResponse.newBuilder()
+        .addAllExistingNodes(router.getAllNodes())
+        .setSuccess(true).build()
+    );
     responseObserver.onCompleted();
   }
 

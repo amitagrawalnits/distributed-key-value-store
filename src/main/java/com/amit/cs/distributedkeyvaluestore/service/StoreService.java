@@ -22,7 +22,6 @@ public class StoreService {
   private final ConsistentHashRouter router;
   private final ClusterClient clusterClient;
 
-  // Inject properties to identify "Self"
   @Value("${spring.grpc.server.port}")
   private int myPort;
   @Value("${server.address:127.0.0.1}")
@@ -102,7 +101,7 @@ public class StoreService {
   public Flux<KeyValue> handleScan(String start, String end) {
     // Need to expose getAllNodes in Router
     // For MVP, assuming we iterate a known list or Router is updated
-    return Flux.empty(); // Placeholder until Router.getAllNodes() is added
+    return Flux.empty();
   }
 
   private boolean isSelf(NodeInfo node) {

@@ -28,8 +28,8 @@ public class NodeLifecycleManager {
 
   @EventListener(ApplicationReadyEvent.class)
   public void onApplicationReady() {
-    String myId = getMyIp() + ":" + myPort;
-    NodeInfo me = NodeInfo.newBuilder().setId(myId).setIp(getMyIp()).setPort(myPort).build();
+    final var myId = getMyIp() + ":" + myPort;
+    final var me = NodeInfo.newBuilder().setId(myId).setIp(getMyIp()).setPort(myPort).build();
     router.addNode(me);
 
     if (!seed.ip().isEmpty() && seed.port() != 0 && seed.port() != myPort) {

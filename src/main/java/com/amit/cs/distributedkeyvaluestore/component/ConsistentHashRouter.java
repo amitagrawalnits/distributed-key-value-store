@@ -67,6 +67,22 @@ public class ConsistentHashRouter {
     return false;
   }
 
+  public List<NodeInfo> getAllNodes() {
+    lock.readLock().lock();
+    try {
+      final var uniqueNodes = new ArrayList<NodeInfo>();
+      for (final var node : ring.values()) {
+        // Check uniqueness based on ID (IP:Port)
+        if (uniqueNodes.stream().noneMatch(n -> n.getId().equals(node.getId()))) {
+          uniqueNodes.add(node);
+        }
+      }
+      return uniqueNodes;
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
   private long hash(String key) {
     try {
       MessageDigest md = MessageDigest.getInstance("MD5");
