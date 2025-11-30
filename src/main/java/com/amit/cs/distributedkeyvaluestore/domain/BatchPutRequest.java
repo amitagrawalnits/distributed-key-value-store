@@ -16,11 +16,8 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BatchResponseDto {
+public class BatchPutRequest {
 
-  @JsonProperty("status")
-  private String status;
-
-  @JsonProperty("failures")
-  private List<FailedKeyDto> failures;
+  @JsonProperty("entries")
+  private List<Entry> entries;
 }

@@ -19,7 +19,7 @@ public class StoreController {
 
   // --- NEW: Single PUT ---
   @PostMapping("/keys")
-  public Mono<ResponseEntity<String>> put(@RequestBody EntryDto request) {
+  public Mono<ResponseEntity<String>> put(@RequestBody Entry request) {
     return storeService.handleWrite(request.key(), request.key())
       .map(success -> {
         if (success) return ResponseEntity.ok("Written Successfully");
@@ -29,7 +29,7 @@ public class StoreController {
 
   // --- NEW: Single GET ---
   @GetMapping("/keys/{key}")
-  public Mono<ResponseEntity<GetResponseDto>> get(@PathVariable String key) {
+  public Mono<ResponseEntity<GetResponse>> get(@PathVariable String key) {
     return storeService.handleRead(key)
       .map(ResponseEntity::ok)
       .defaultIfEmpty(ResponseEntity.notFound().build());
@@ -44,21 +44,21 @@ public class StoreController {
   }
 
   @PostMapping("/batch")
-  public Mono<ResponseEntity<BatchResponseDto>> batchPut(@RequestBody BatchPutRequestDto request) {
+  public Mono<ResponseEntity<BatchResponse>> batchPut(@RequestBody BatchPutRequest request) {
     return storeService.handleBatch(request.entries())
       .map(failures -> {
         if (failures.isEmpty()) {
-          return ResponseEntity.ok(new BatchResponseDto("Success", Collections.emptyList()));
+          return ResponseEntity.ok(new BatchResponse("Success", Collections.emptyList()));
         } else {
           // 207 Multi-Status indicates partial success
-          return ResponseEntity.status(207).body(new BatchResponseDto("Partial Success", failures));
+          return ResponseEntity.status(207).body(new BatchResponse("Partial Success", failures));
         }
       });
   }
 
   @GetMapping("/range")
-  public Flux<EntryDto> scan(@RequestParam String start, @RequestParam String end) {
+  public Flux<Entry> scan(@RequestParam String start, @RequestParam String end) {
     return storeService.handleScan(start, end)
-      .map(kv -> new EntryDto(kv.getKey(), kv.getValue()));
+      .map(kv -> new Entry(kv.getKey(), kv.getValue()));
   }
 }

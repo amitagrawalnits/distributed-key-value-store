@@ -1,5 +1,6 @@
 package com.amit.cs.distributedkeyvaluestore.domain;
 
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -14,12 +15,11 @@ import lombok.experimental.Accessors;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class FailedKeyDto {
+public class PutRequest {
 
   @JsonProperty("key")
   private String key;
 
-  @JsonProperty("reason")
-  private String reason;
-
+  @JsonProperty("value")
+  private String value;
 }

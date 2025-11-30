@@ -1,11 +1,12 @@
 package com.amit.cs.distributedkeyvaluestore.domain;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.Accessors;
+
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -15,11 +16,11 @@ import lombok.experimental.Accessors;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PutRequestDto {
+public class BatchResponse {
 
-  @JsonProperty("key")
-  private String key;
+  @JsonProperty("status")
+  private String status;
 
-  @JsonProperty("value")
-  private String value;
+  @JsonProperty("failures")
+  private List<FailedKey> failures;
 }

@@ -6,8 +6,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.Accessors;
 
-import java.util.List;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Builder
@@ -16,8 +14,12 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BatchPutRequestDto {
+public class FailedKey {
 
-  @JsonProperty("entries")
-  private List<EntryDto> entries;
+  @JsonProperty("key")
+  private String key;
+
+  @JsonProperty("reason")
+  private String reason;
+
 }

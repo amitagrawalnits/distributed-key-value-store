@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class EntryDto {
+public class Entry {
 
   @JsonProperty("key")
   private String key;
