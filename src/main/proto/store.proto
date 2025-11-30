@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package com.amit.store.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.amit.store.grpc";
+
+service StoreGrpcService {
+  rpc internalPut (PutRequest) returns (PutResponse);
+  rpc internalGet (GetRequest) returns (GetResponse);
+  rpc internalDelete (DeleteRequest) returns (DeleteResponse);
+  rpc internalBatchPut (BatchPutRequest) returns (BatchPutResponse);
+  rpc internalScan (ScanRequest) returns (stream KeyValue);
+  rpc joinCluster (JoinRequest) returns (JoinResponse);
+  rpc transferRange (TransferRequest) returns (stream KeyValue);
+}
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+  int64 timestamp = 3;
+  bool is_tombstone = 4;
+}
+
+message NodeInfo {
+  string id = 1;
+  string ip = 2;
+  int32 port = 3;
+  int64 hash = 4;
+}
+
+message PutRequest {
+  string key = 1;
+  string value = 2;
+  int64 timestamp = 3;
+}
+
+message PutResponse {
+  bool success = 1;
+}
+
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  string value = 1;
+  bool found = 2;
+  int64 timestamp = 3;
+  bool is_tombstone = 4;
+}
+
+message DeleteRequest {
+  string key = 1;
+  int64 timestamp = 2;
+}
+
+message DeleteResponse {
+  bool success = 1;
+}
+
+message BatchPutRequest {
+  repeated KeyValue entries = 1;
+}
+
+message BatchPutResponse {
+  bool success = 1;
+}
+
+message ScanRequest {
+  string start_key = 1;
+  string end_key = 2;
+}
+
+message JoinRequest {
+  string node_ip = 1;
+  int32 node_port = 2;
+}
+
+message JoinResponse {
+  repeated NodeInfo existing_nodes = 1;
+  bool success = 2;
+}
+
+message TransferRequest {
+  int64 start_hash = 1;
+  int64 end_hash = 2;
+}
