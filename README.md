@@ -1,4 +1,4 @@
-# Distributed Key-Value Store - Design Document
+# Distributed Key-Value Store
 
 ## 1. System Overview
 
@@ -149,14 +149,14 @@ The system uses **Strict Quorum** to ensure consistency.
 ## 6. How to Run the Distributed Key-Value Store
 
 ### Prerequisites
-* **Java 21** (Required)
+* **Java 25** (Required)
 * **Gradle** (Wrapper included in project)
 
 ### Build the Project
 Run the following command in the root directory to clean, compile Protobuf files, and build the JAR.
 
-``` bash 
-  ./gradlew clean build
+```
+./gradlew clean build
 ```
 The executable JAR will be located at: build/libs/distributed-key-value-store-0.0.1.jar
 
@@ -171,9 +171,9 @@ To simulate a distributed system on a single machine, we run 3 instances on diff
   
     gRPC Port: 9090
 ``` 
-    HTTP_PORT=8080 \
-    GRPC_PORT=9090 \
-    java -jar build/libs/distributed-key-value-store-0.0.1.jar
+HTTP_PORT=8080 \
+GRPC_PORT=9090 \
+java -jar build/libs/distributed-key-value-store-0.0.1.jar
 ```
 
 * **Node 2**
@@ -184,11 +184,11 @@ To simulate a distributed system on a single machine, we run 3 instances on diff
 
   gRPC Port: 9091
 ``` 
-    HTTP_PORT=8081 \
-    GRPC_PORT=9091 \
-    SEED_IP=127.0.0.1 \
-    SEED_PORT=9090 \
-    java -jar build/libs/distributed-key-value-store-0.0.1.jar
+HTTP_PORT=8081 \
+GRPC_PORT=9091 \
+SEED_IP=127.0.0.1 \
+SEED_PORT=9090 \
+java -jar build/libs/distributed-key-value-store-0.0.1.jar
 ```
 
 * **Node 3**
@@ -199,11 +199,11 @@ To simulate a distributed system on a single machine, we run 3 instances on diff
 
   gRPC Port: 9092
 ``` 
-    HTTP_PORT=8082 \
-    GRPC_PORT=9092 \
-    SEED_IP=127.0.0.1 \
-    SEED_PORT=9090 \
-    java -jar build/libs/distributed-key-value-store-0.0.1.jar
+HTTP_PORT=8082 \
+GRPC_PORT=9092 \
+SEED_IP=127.0.0.1 \
+SEED_PORT=9090 \
+java -jar build/libs/distributed-key-value-store-0.0.1.jar
 ```
 
 ### Using the API
