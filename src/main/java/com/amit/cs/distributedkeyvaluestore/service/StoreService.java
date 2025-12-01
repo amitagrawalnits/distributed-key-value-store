@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.InetAddress;
 import java.util.*;
 
 @RequiredArgsConstructor
@@ -24,68 +25,94 @@ public class StoreService {
 
   @Value("${spring.grpc.server.port}")
   private int myPort;
-  @Value("${server.address:127.0.0.1}")
-  private String myIp;
 
+  /**
+   * Handles the write operation for the provided key and value.
+   *
+   * @param key   the key associated with the data to be written
+   * @param value the value to be written corresponding to the key
+   * @return a Mono emitting true if the write operation is successful, false otherwise
+   */
   public Mono<Boolean> handleWrite(String key, String value) {
     return doWrite(key, value, false);
   }
 
+  /**
+   * Handles the deletion of a specified key.
+   *
+   * @param key the key to be deleted
+   * @return a Mono emitting a Boolean indicating the success or failure of the delete operation
+   */
   public Mono<Boolean> handleDelete(String key) {
     return doWrite(key, "", true);
   }
 
   private Mono<Boolean> doWrite(String key, String value, boolean isTombstone) {
-    long timestamp = System.currentTimeMillis();
-    List<NodeInfo> replicas = router.getPreferenceList(key);
+    final var timestamp = System.currentTimeMillis();
+    final var replicas = router.getPreferenceList(key);
 
-    List<Mono<Boolean>> writeTasks = replicas.stream().map(node -> {
-      if (isSelf(node)) {
-        storage.put(key, value, timestamp, isTombstone);
-        return Mono.just(true);
-      } else {
-        return isTombstone
-          ? clusterClient.replicateDelete(node, DeleteRequest.newBuilder().setKey(key).setTimestamp(timestamp).build())
-          : clusterClient.replicatePut(node, PutRequest.newBuilder().setKey(key).setValue(value).setTimestamp(timestamp).build());
-      }
-    }).toList();
+    final var writeTasks = replicas.stream().map(node -> {
+        if (isSelf(node)) {
+          storage.put(key, value, timestamp, isTombstone);
+          return Mono.just(true);
+        } else {
+          return isTombstone
+            ? clusterClient.replicateDelete(node, DeleteRequest.newBuilder().setKey(key).setTimestamp(timestamp).build())
+            : clusterClient.replicatePut(node, PutRequest.newBuilder().setKey(key).setValue(value).setTimestamp(timestamp).build());
+        }
+      })
+      .toList();
 
     return Flux.merge(writeTasks).filter(s -> s).count().map(acks -> acks >= 2);
   }
 
+  /**
+   * Handles a read operation for a given key by querying the appropriate replicas
+   * and returning the most up-to-date value based on timestamps.
+   *
+   * @param key the key for which the value should be retrieved
+   * @return a Mono containing the latest {@code GetResponse} object if a value is found;
+   * otherwise, an empty Mono
+   */
   public Mono<GetResponse> handleRead(String key) {
-    List<NodeInfo> replicas = router.getPreferenceList(key);
+    final var replicas = router.getPreferenceList(key);
     return Flux.fromIterable(replicas).flatMap(node -> {
-      if (isSelf(node)) {
-        KeyValue kv = storage.get(key);
-        return (kv == null) ? Mono.empty() : Mono.just(toDto(kv));
-      } else {
-        return clusterClient.getFromReplica(node, GetRequest.newBuilder().setKey(key).build())
-          .filter(com.amit.store.grpc.GetResponse::getFound).map(this::toDto);
-      }
-    }).sort((a, b) -> Long.compare(b.timestamp(), a.timestamp())).next();
+        if (isSelf(node)) {
+          final var kv = storage.get(key);
+          return (kv == null) ? Mono.empty() : Mono.just(toDto(kv));
+        } else {
+          return clusterClient.getFromReplica(node, GetRequest.newBuilder().setKey(key).build())
+            .filter(com.amit.store.grpc.GetResponse::getFound).map(this::toDto);
+        }
+      })
+      .sort((a, b) -> Long.compare(b.timestamp(), a.timestamp()))
+      .next();
   }
 
+  /**
+   * Handles a batch of entries by grouping them based on the primary node responsible,
+   * performing local storage operations or replication to other nodes as needed.
+   *
+   * @param entries the list of entries to be processed, where each entry contains a key and value
+   * @return a Mono that emits a list of failed keys, indicating any keys that failed to be stored or replicated
+   */
   public Mono<List<FailedKey>> handleBatch(List<Entry> entries) {
-    Map<String, List<KeyValue>> batchGroups = new HashMap<>();
-    long timestamp = System.currentTimeMillis();
+    final var batchGroups = new HashMap<String, List<KeyValue>>();
+    final var timestamp = System.currentTimeMillis();
 
-    for (Entry entry : entries) {
-      List<NodeInfo> prefs = router.getPreferenceList(entry.key());
+    for (final var entry : entries) {
+      final var prefs = router.getPreferenceList(entry.key());
       if (prefs.isEmpty()) continue;
       // Group by the IP:Port of the Primary Node
-      String nodeId = prefs.get(0).getId();
-      batchGroups.computeIfAbsent(nodeId, k -> new ArrayList<>()).add(
+      final var nodeId = prefs.get(0).getId();
+      batchGroups.computeIfAbsent(nodeId, _ -> new ArrayList<>()).add(
         KeyValue.newBuilder().setKey(entry.key()).setValue(entry.value()).setTimestamp(timestamp).build()
       );
     }
 
     return Flux.fromIterable(batchGroups.entrySet()).flatMap(entry -> {
-      // In a real impl, we'd map ID back to NodeInfo.
-      // Simplification: We iterate router again or trust the list from getPreferenceList matches.
-      // Here we just fetch the NodeInfo from the first key in the batch to get the target object.
-      String sampleKey = entry.getValue().get(0).getKey();
-      NodeInfo target = router.getPreferenceList(sampleKey).get(0);
+      final var sampleKey = entry.getValue().get(0).getKey();
+      final var target = router.getPreferenceList(sampleKey).get(0);
 
       if (isSelf(target)) {
         entry.getValue().forEach(kv -> storage.put(kv.getKey(), kv.getValue(), kv.getTimestamp(), false));
@@ -98,14 +125,42 @@ public class StoreService {
     }).flatMapIterable(l -> l).collectList();
   }
 
+  /**
+   * Handles a scan operation across a distributed set of nodes. It retrieves key-value pairs
+   * within the specified range and resolves any conflicts by keeping the most recent value for each key.
+   *
+   * @param start the starting key of the range to scan, inclusive
+   * @param end the ending key of the range to scan, inclusive
+   * @return a Flux stream of the resolved key-value pairs sorted by key
+   */
   public Flux<KeyValue> handleScan(String start, String end) {
-    // Need to expose getAllNodes in Router
-    // For MVP, assuming we iterate a known list or Router is updated
-    return Flux.empty();
+    final var allNodes = router.getAllNodes();
+
+    return Flux.fromIterable(allNodes)
+      .flatMap(node -> {
+        if (isSelf(node)) {
+          return storage.scan(start, end);
+        } else {
+          return clusterClient.scan(node, start, end).onErrorResume(e -> Flux.empty());
+        }
+      })
+      .groupBy(KeyValue::getKey)
+      .flatMap(groupedFlux -> groupedFlux
+        .reduce((kv1, kv2) -> kv1.getTimestamp() > kv2.getTimestamp() ? kv1 : kv2)
+      )
+      .sort(Comparator.comparing(KeyValue::getKey));
   }
 
   private boolean isSelf(NodeInfo node) {
-    return node.getIp().equals(myIp) && node.getPort() == myPort;
+    return node.getIp().equals(getMyIp()) && node.getPort() == myPort;
+  }
+
+  private String getMyIp() {
+    try {
+      return InetAddress.getLocalHost().getHostAddress();
+    } catch (Exception e) {
+      return "127.0.0.1"; // Fallback
+    }
   }
 
   private GetResponse toDto(KeyValue kv) {

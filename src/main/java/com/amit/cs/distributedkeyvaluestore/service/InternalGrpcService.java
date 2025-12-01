@@ -8,6 +8,26 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+/**
+ * InternalGrpcService is a gRPC server implementation that extends
+ * StoreGrpcServiceGrpc.StoreGrpcServiceImplBase to handle internal backend
+ * operations for a distributed key-value store.
+ * It provides functionalities such as putting, deleting, getting, scanning
+ * values, managing cluster membership, and transferring data ranges.
+ *
+ * This service is designed to interact with backend components such as the
+ * StorageEngine for data persistence and the ConsistentHashRouter for managing
+ * cluster node relationships.
+ *
+ * Methods:
+ * - internalPut: Handles the insertion or update of a key-value pair in the storage.
+ * - internalDelete: Deletes a key-value pair by marking it as a tombstone.
+ * - internalBatchPut: Processes multiple key-value pair updates in a single batch.
+ * - internalGet: Retrieves the value associated with a given key.
+ * - internalScan: Scans and streams key-value entries within a specified range.
+ * - joinCluster: Allows a new node to join the cluster and updates the router.
+ * - transferRange: Transfers all key-value pairs from the current storage.
+ */
 @Slf4j
 @RequiredArgsConstructor
 @Service

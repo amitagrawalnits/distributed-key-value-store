@@ -20,10 +20,9 @@ public class StoreController {
   @PostMapping("/keys")
   public Mono<ResponseEntity<String>> put(@RequestBody Entry request) {
     return storeService.handleWrite(request.key(), request.value())
-      .map(success -> {
-        if (success) return ResponseEntity.ok("Written Successfully");
-        else return ResponseEntity.status(503).body("Quorum Failed");
-      });
+      .filter(success -> success)
+      .map(_-> ResponseEntity.ok("Written Successfully"))
+      .switchIfEmpty(Mono.just(ResponseEntity.status(503).body("Quorum Failed")));
   }
 
   @GetMapping("/keys/{key}")
@@ -36,7 +35,9 @@ public class StoreController {
   @DeleteMapping("/keys/{key}")
   public Mono<ResponseEntity<Void>> delete(@PathVariable String key) {
     return storeService.handleDelete(key)
-      .map(success -> success ? ResponseEntity.noContent().build() : ResponseEntity.status(503).build());
+      .filter(success -> success)
+      .map(_ -> ResponseEntity.noContent().<Void>build())
+      .switchIfEmpty(Mono.just(ResponseEntity.status(503).build()));
   }
 
   @PostMapping("/batch")
