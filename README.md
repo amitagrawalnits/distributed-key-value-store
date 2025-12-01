@@ -145,3 +145,107 @@ The system uses **Strict Quorum** to ensure consistency.
 | **Serialization** | Protocol Buffers (Proto3) | High-performance binary transfer |
 | **Storage** | `ConcurrentHashMap`       | In-Memory Data Store |
 | **Locks** | `ReentrantReadWriteLock`  | Thread-safe Ring updates |
+
+## 6. How to Run the Distributed Key-Value Store
+
+### Prerequisites
+* **Java 21** (Required)
+* **Gradle** (Wrapper included in project)
+
+### Build the Project
+Run the following command in the root directory to clean, compile Protobuf files, and build the JAR.
+
+``` bash 
+  ./gradlew clean build
+```
+The executable JAR will be located at: build/libs/distributed-key-value-store-0.0.1.jar
+
+### Running the Cluster (3 Nodes)
+To simulate a distributed system on a single machine, we run 3 instances on different ports.
+
+* **Node 1 (The Seed Node)**
+
+    This node starts first. It does not connect to anyone else initially.
+
+    HTTP Port: 8080
+  
+    gRPC Port: 9090
+``` 
+    HTTP_PORT=8080 \
+    GRPC_PORT=9090 \
+    java -jar build/libs/distributed-key-value-store-0.0.1.jar
+```
+
+* **Node 2**
+
+  This node connects to Node 1 (Seed) to join the cluster.
+
+  HTTP Port: 8081
+
+  gRPC Port: 9091
+``` 
+    HTTP_PORT=8081 \
+    GRPC_PORT=9091 \
+    SEED_IP=127.0.0.1 \
+    SEED_PORT=9090 \
+    java -jar build/libs/distributed-key-value-store-0.0.1.jar
+```
+
+* **Node 3**
+
+  This node also connects to Node 1 (Seed) to join the cluster.
+
+  HTTP Port: 8082
+
+  gRPC Port: 9092
+``` 
+    HTTP_PORT=8082 \
+    GRPC_PORT=9092 \
+    SEED_IP=127.0.0.1 \
+    SEED_PORT=9090 \
+    java -jar build/libs/distributed-key-value-store-0.0.1.jar
+```
+
+### Using the API
+Since the project uses `springdoc-openapi-starter-webflux-ui`, you can access the interactive API documentation on any running node:
+* **Node 1:** http://localhost:8080/webjars/swagger-ui/index.html
+* **Node 2:** http://localhost:8081/webjars/swagger-ui/index.html
+* **Node 3:** http://localhost:8082/webjars/swagger-ui/index.html
+
+### cURL Examples
+
+**1. put(key, value)**
+```
+curl -X POST http://localhost:8080/api/v1/store/keys \
+  -H "Content-Type: application/json" \
+  -d '{"key": "user_1", "value": "Alice"}'
+```
+
+**2. read(key)**
+```
+curl http://localhost:8082/api/v1/store/keys/user_1
+```
+
+**3. readKeyRange(startKey, endKey)**
+```
+curl http://localhost:8080/api/v1/store/range?start=user_a&end=user_z
+```
+
+**4. batchPut**
+```
+curl -X POST http://localhost:8080/api/v1/store/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entries": [
+      {"key": "user_a", "value": "100"},
+      {"key": "user_b", "value": "200"},
+      {"key": "user_c", "value": "300"}
+    ]
+  }'
+```
+
+**5. delete(key)**
+```
+curl -X DELETE http://localhost:8080/api/v1/store/keys/user_1
+```
+
